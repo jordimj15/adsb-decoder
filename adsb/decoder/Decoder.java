@@ -5,7 +5,7 @@ public class Decoder {
     public Decoder() {
     }
 
-    public AdsbMessage decode(String hexadecimalMessage) {
+    public AdsbMessage decode(double rawData) {
         return new AdsbMessage();
     }
 }
