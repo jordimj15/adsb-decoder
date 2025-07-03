@@ -3,6 +3,7 @@ package modes;
 public class AdsbMessage {
     private long timeStamp;
     private int downlinkFormat;
+    private int typeCode;
     private int transponderCapability;
     private String icaoAddress;
     private String callsign;
@@ -23,6 +24,13 @@ public class AdsbMessage {
         this.downlinkFormat = downlinkFormat;
     }
 
+    public int getTypeCode() {
+        return typeCode;
+    }
+
+    public void setTypeCode(int typeCode) {
+        this.typeCode = typeCode;
+    }
     public int getTransponderCapability() {
         return transponderCapability;
     }

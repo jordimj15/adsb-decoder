@@ -2,14 +2,26 @@ package decoder.AdsbParser;
 
 import modes.raw.AircraftIdentification;
 
-public class AircraftIdentificationParser {
+public class AircraftIdentificationParser extends AdsbMessageParser {
+
     private AircraftIdentification adsbMessage;
     private String aircraftCategory;
     private String emitterCategoryLetter;
 
-    public AircraftIdentificationParser(long timeStamp, long ME, int TC){
+    public AircraftIdentificationParser(long timeStamp, long highBits, long lowBits){
+        super(timeStamp, highBits, lowBits);
+        long ME = ((highBits & bitMasks[32]) << 24) | ((lowBits >>> 40) & bitMasks[24]);
         int CA = (int)((ME >>> 56) & 0x07);
+        int TC = (int)(ME >>> 51);
         setAircraftCategory(TC, CA);
+    }
+
+    public AircraftIdentification getModeSMessage(long timeStamp, long ME){
+        adsbMessage = new AircraftIdentification();
+        adsbMessage.setTimeStamp(timeStamp);
+        adsbMessage.setDownlinkFormat(getDownlinkFormat());
+        adsbMessage.setTypeCode(getTypeCode());
+        return adsbMessage;
     }
 
     public void setAircraftCategory(int TC, int CA){
@@ -18,6 +30,8 @@ public class AircraftIdentificationParser {
                 break;
             case 2:
                 switch (CA){
+                    case 0: this.aircraftCategory = "No category information";
+                        break;
                     case 1: this.aircraftCategory = "Surface emergency vehicle";
                         break;
                     case 3: this.aircraftCategory = "Surface service vehicle";
@@ -28,6 +42,8 @@ public class AircraftIdentificationParser {
                 break;
             case 3:
                 switch (CA){
+                    case 0: this.aircraftCategory = "No category information";
+                        break;
                     case 1: this.aircraftCategory = "Glider, sailplane";
                         break;
                     case 2: this.aircraftCategory = "Lighter-than-air";
@@ -46,6 +62,8 @@ public class AircraftIdentificationParser {
                 break;
             case 4:
                 switch (CA){
+                    case 0: this.aircraftCategory = "No category information";
+                        break;
                     case 1: this.aircraftCategory = "Light (less than 7000 kg)";
                         break;
                     case 2: this.aircraftCategory = "Medium 1 (between 7000 kg and 34000 kg)";
@@ -63,5 +81,16 @@ public class AircraftIdentificationParser {
                 }
                 break;
         }
+    }
+
+    public String setCallsign(long ME){
+        final String charMapping = "#ABCDEFGHIJKLMNOPQRSTUVWXYZ#####_###############0123456789######";
+        char[] callsign = new char[8];
+        for (int i = 0; i < 8; i++) {
+            int bitPos = 56 - ((i + 1) * 6);
+            int sixBits = (int)((ME >>> bitPos) & 0x3F);
+            callsign[i] = charMapping.charAt(sixBits);
+        }
+        return new String(callsign).replace("#","").replace("_","");
     }
 }
