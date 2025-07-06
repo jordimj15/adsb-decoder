@@ -26,13 +26,12 @@ public class AdsbMessageParser {
         setTypeCode((int)(ME >>> 51));
         setDownlinkFormat((int)((highBits >>> 59) & 0x1F));
         setTimeStamp(timeStamp);
-        setTypeCode((int)(ME >>> 51));
     }
 
     public AdsbMessage getModeSMessage(){
         this.adsbMessage = new AdsbMessage();
-        adsbMessage.setDownlinkFormat(getDownlinkFormat());
         adsbMessage.setTimeStamp(getTimeStamp());
+        adsbMessage.setDownlinkFormat(getDownlinkFormat());
         adsbMessage.setTypeCode(getTypeCode());
         adsbMessage.setTransponderCapability(getTransponderCapability());
         adsbMessage.setIcaoAddress(getIcaoAddress());

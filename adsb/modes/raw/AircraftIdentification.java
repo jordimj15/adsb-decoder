@@ -3,13 +3,23 @@ package modes.raw;
 import modes.AdsbMessage;
 
 public class AircraftIdentification extends AdsbMessage {
-    private int category;
+    private int wakeVortexCapability;
 
-    public int getCategory() {
-        return category;
+    public String getAircraftCategory() {
+        return aircraftCategory;
     }
 
-    public void setCategory(int category) {
-        this.category = category;
+    public void setAircraftCategory(String aircraftCategory) {
+        this.aircraftCategory = aircraftCategory;
+    }
+
+    private String aircraftCategory;
+
+    public int getWakeVortexCapability() {
+        return wakeVortexCapability;
+    }
+
+    public void setWakeVortexCapability(int wakeVortexCapability) {
+        this.wakeVortexCapability = wakeVortexCapability;
     }
 }

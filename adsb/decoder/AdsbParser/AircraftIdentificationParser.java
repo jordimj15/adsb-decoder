@@ -6,21 +6,30 @@ public class AircraftIdentificationParser extends AdsbMessageParser {
 
     private AircraftIdentification adsbMessage;
     private String aircraftCategory;
-    private String emitterCategoryLetter;
+    private int wakeVortexCapability;
+
+
 
     public AircraftIdentificationParser(long timeStamp, long highBits, long lowBits){
         super(timeStamp, highBits, lowBits);
         long ME = ((highBits & bitMasks[32]) << 24) | ((lowBits >>> 40) & bitMasks[24]);
         int CA = (int)((ME >>> 56) & 0x07);
+        setWakeVortexCapability(CA);
         int TC = (int)(ME >>> 51);
         setAircraftCategory(TC, CA);
     }
 
     public AircraftIdentification getModeSMessage(long timeStamp, long ME){
         adsbMessage = new AircraftIdentification();
-        adsbMessage.setTimeStamp(timeStamp);
+        adsbMessage.setTimeStamp(getTimeStamp());
         adsbMessage.setDownlinkFormat(getDownlinkFormat());
         adsbMessage.setTypeCode(getTypeCode());
+        adsbMessage.setTransponderCapability(getTransponderCapability());
+        adsbMessage.setIcaoAddress(getIcaoAddress());
+        adsbMessage.setCallsign(getCallsign());
+        adsbMessage.setWakeVortexCapability(getWakeVortexCapability());
+        adsbMessage.setAircraftCategory(getAircraftCategory());
+
         return adsbMessage;
     }
 
@@ -92,5 +101,21 @@ public class AircraftIdentificationParser extends AdsbMessageParser {
             callsign[i] = charMapping.charAt(sixBits);
         }
         return new String(callsign).replace("#","").replace("_","");
+    }
+
+    public String getAircraftCategory() {
+        return aircraftCategory;
+    }
+
+    public void setAircraftCategory(String aircraftCategory) {
+        this.aircraftCategory = aircraftCategory;
+    }
+
+    public int getWakeVortexCapability() {
+        return wakeVortexCapability;
+    }
+
+    public void setWakeVortexCapability(int wakeVortexCapability) {
+        this.wakeVortexCapability = wakeVortexCapability;
     }
 }
