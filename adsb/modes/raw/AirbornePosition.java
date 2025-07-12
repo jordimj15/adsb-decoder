@@ -5,7 +5,7 @@ public class AirbornePosition extends Position {
     private String surveillanceStatus;
     private int nicSubB;
     private String altitudeType;
-    private double encodedAltitude;
+    private int encodedAltitude;
 
     public String getSurveillanceStatus() {
         return surveillanceStatus;
@@ -31,11 +31,11 @@ public class AirbornePosition extends Position {
         this.altitudeType = altitudeType;
     }
 
-    public double getEncodedAltitude() {
+    public int getEncodedAltitude() {
         return encodedAltitude;
     }
 
-    public void setEncodedAltitude(double encodedAltitude) {
+    public void setEncodedAltitude(int encodedAltitude) {
         this.encodedAltitude = encodedAltitude;
     }
 }

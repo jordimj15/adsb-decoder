@@ -4,6 +4,7 @@ import modes.AdsbMessage;
 
 public class AircraftIdentification extends AdsbMessage {
     private int wakeVortexCapability;
+    private String aircraftCategory;
 
     public String getAircraftCategory() {
         return aircraftCategory;
@@ -12,8 +13,6 @@ public class AircraftIdentification extends AdsbMessage {
     public void setAircraftCategory(String aircraftCategory) {
         this.aircraftCategory = aircraftCategory;
     }
-
-    private String aircraftCategory;
 
     public int getWakeVortexCapability() {
         return wakeVortexCapability;
