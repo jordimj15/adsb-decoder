@@ -9,14 +9,32 @@ public class AirbornePositionParser extends PositionParser {
     private String surveillanceStatus;
     private int nicSubB;
     private String altitudeType;
-    private double encodedAltitude;
+    private int encodedAltitude;
 
     public AirbornePositionParser(long timeStamp, long highBits, long lowBits) {
+        super(timeStamp, highBits, lowBits);
         long ME = ((highBits & bitMasks[32]) << 24) | ((lowBits >>> 40) & bitMasks[24]);
         setSurveillanceStatus((int)((ME >>> 48) & 0b11));
         setNicSubB((int)((ME >>> 47) & 1));
         setAltitudeType((int)(ME >>> 51));
         setEncodedAltitude((int)((ME >>> 35) & 0xFFF));
+    }
+
+    public AirbornePosition getModeSMessage() {
+        this.adsbMessage = new AirbornePosition();
+        adsbMessage.setTimeStamp(getTimeStamp());
+        adsbMessage.setDownlinkFormat(getDownlinkFormat());
+        adsbMessage.setTypeCode(getTypeCode());
+        adsbMessage.setTransponderCapability(getTransponderCapability());
+        adsbMessage.setIcaoAddress(getIcaoAddress());
+        adsbMessage.setCallsign(getCallsign());
+        adsbMessage.setNicSubB(getNicSubB());
+        adsbMessage.setAltitudeType(getAltitudeType());
+        adsbMessage.setEncodedAltitude(getEncodedAltitude());
+        adsbMessage.setCprFormat(getCprFormat());
+        adsbMessage.setEncodedLatitude(getEncodedLatitude());
+        adsbMessage.setEncodedLongitude(getEncodedLongitude());
+        return adsbMessage;
     }
 
     public String getSurveillanceStatus() {
@@ -36,6 +54,8 @@ public class AirbornePositionParser extends PositionParser {
                 break;
             case 3:
                 this.surveillanceStatus = "Permanent warning";
+                break;
+            default:
                 break;
         }
     }
@@ -57,7 +77,7 @@ public class AirbornePositionParser extends PositionParser {
         this.altitudeType = isGNSS ? "GNSS altitude" : "Barometric altitude";
     }
 
-    public double getEncodedAltitude() {
+    public int getEncodedAltitude() {
         return encodedAltitude;
     }
 

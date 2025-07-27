@@ -35,9 +35,9 @@ public class AdsbMessageParser {
         adsbMessage.setTypeCode(getTypeCode());
         adsbMessage.setTransponderCapability(getTransponderCapability());
         adsbMessage.setIcaoAddress(getIcaoAddress());
-
         return adsbMessage;
     }
+
     public long getTimeStamp() {
         return timeStamp;
     }

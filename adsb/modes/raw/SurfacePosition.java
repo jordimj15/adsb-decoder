@@ -3,16 +3,15 @@ package modes.raw;
 import modes.AdsbMessage;
 
 public class SurfacePosition extends Position {
-    private double movement;
+    private Double movement;
     private int groundTrackStatus;
     private double groundTrack;
-    private int time;
 
-    public double getMovement() {
+    public Double getMovement() {
         return movement;
     }
 
-    public void setMovement(double movement) {
+    public void setMovement(Double movement) {
         this.movement = movement;
     }
 
@@ -30,13 +29,5 @@ public class SurfacePosition extends Position {
 
     public void setGroundTrack(double groundTrack) {
         this.groundTrack = groundTrack;
-    }
-
-    public int getTime() {
-        return time;
-    }
-
-    public void setTime(int time) {
-        this.time = time;
     }
 }
