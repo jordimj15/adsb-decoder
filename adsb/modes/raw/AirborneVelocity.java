@@ -4,13 +4,12 @@ import modes.AdsbMessage;
 
 public class AirborneVelocity extends AdsbMessage {
     private String subType;
-    private int intentChangeFlag;
+    private String intentChangeFlag;
     private int ifrCapabilityFLag;
     private int NACv;
     private String typeVerticalRate;
-    private double verticalRate;
-    private String typeAltitudeDifference;
-    private double altitudeDifference;
+    private Double verticalRate;
+    private Double altitudeDifference;
 
     public String getSubType() {
         return subType;
@@ -20,13 +19,6 @@ public class AirborneVelocity extends AdsbMessage {
         this.subType = subType;
     }
 
-    public int getIntentChangeFlag() {
-        return intentChangeFlag;
-    }
-
-    public void setIntentChangeFlag(int intentChangeFlag) {
-        this.intentChangeFlag = intentChangeFlag;
-    }
 
     public int getIfrCapabilityFLag() {
         return ifrCapabilityFLag;
@@ -52,27 +44,27 @@ public class AirborneVelocity extends AdsbMessage {
         this.typeVerticalRate = typeVerticalRate;
     }
 
-    public double getVerticalRate() {
+    public String getIntentChangeFlag() {
+        return intentChangeFlag;
+    }
+
+    public void setIntentChangeFlag(String intentChangeFlag) {
+        this.intentChangeFlag = intentChangeFlag;
+    }
+
+    public Double getVerticalRate() {
         return verticalRate;
     }
 
-    public void setVerticalRate(double verticalRate) {
+    public void setVerticalRate(Double verticalRate) {
         this.verticalRate = verticalRate;
     }
 
-    public String getTypeAltitudeDifference() {
-        return typeAltitudeDifference;
-    }
-
-    public void setTypeAltitudeDifference(String typeAltitudeDifference) {
-        this.typeAltitudeDifference = typeAltitudeDifference;
-    }
-
-    public double getAltitudeDifference() {
+    public Double getAltitudeDifference() {
         return altitudeDifference;
     }
 
-    public void setAltitudeDifference(double altitudeDifference) {
+    public void setAltitudeDifference(Double altitudeDifference) {
         this.altitudeDifference = altitudeDifference;
     }
 }
