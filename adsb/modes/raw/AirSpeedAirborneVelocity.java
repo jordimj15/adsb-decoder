@@ -2,7 +2,6 @@ package modes.raw;
 
 public class AirSpeedAirborneVelocity extends AirborneVelocity{
     private Double heading;
-    private int headingStatus;
     private String airspeedType;
     private double airspeed;
 
@@ -12,14 +11,6 @@ public class AirSpeedAirborneVelocity extends AirborneVelocity{
 
     public void setHeading(Double heading) {
         this.heading = heading;
-    }
-
-    public int getHeadingStatus() {
-        return headingStatus;
-    }
-
-    public void setHeadingStatus(int headingStatus) {
-        this.headingStatus = headingStatus;
     }
 
     public String getAirspeedType() {
