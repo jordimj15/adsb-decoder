@@ -2,10 +2,10 @@ package modes.raw;
 
 public class AirborneOperationalStatus extends OperationalStatus {
     private boolean TCASOperational;
-    private boolean ARV;
+    private String ARV;
     private boolean TS;
     private String TC;
-    private boolean uatIn;
+    private String uatIn;
     private int GVA;
     private boolean NICbaro;
 
@@ -17,11 +17,11 @@ public class AirborneOperationalStatus extends OperationalStatus {
         this.TCASOperational = TCASOperational;
     }
 
-    public boolean isARV() {
+    public String getARV() {
         return ARV;
     }
 
-    public void setARV(boolean ARV) {
+    public void setARV(String ARV) {
         this.ARV = ARV;
     }
 
@@ -41,11 +41,11 @@ public class AirborneOperationalStatus extends OperationalStatus {
         this.TC = TC;
     }
 
-    public boolean isUatIn() {
+    public String getUatIn() {
         return uatIn;
     }
 
-    public void setUatIn(boolean uatIn) {
+    public void setUatIn(String uatIn) {
         this.uatIn = uatIn;
     }
 

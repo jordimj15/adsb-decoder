@@ -2,7 +2,7 @@ package modes.raw;
 
 public class SurfaceOperationalStatus extends OperationalStatus {
     private boolean b2Low;
-    private boolean uatIn;
+    private String uatIn;
     private int NACv;
     private int NICsupC;
     private double length;
@@ -27,11 +27,11 @@ public class SurfaceOperationalStatus extends OperationalStatus {
         this.b2Low = b2Low;
     }
 
-    public boolean isUatIn() {
+    public String isUatIn() {
         return uatIn;
     }
 
-    public void setUatIn(boolean uatIn) {
+    public void setUatIn(String uatIn) {
         this.uatIn = uatIn;
     }
 
