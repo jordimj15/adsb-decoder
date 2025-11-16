@@ -13,11 +13,11 @@ public class AirbornePositionParser extends PositionParser {
 
     public AirbornePositionParser(long timeStamp, long highBits, long lowBits) {
         super(timeStamp, highBits, lowBits);
-        long ME = ((highBits & bitMasks[32]) << 24) | ((lowBits >>> 40) & bitMasks[24]);
+        long ME = ((highBits & bitMasks[32]) << 24) | ((lowBits >>> 24) & bitMasks[24]);
         setSurveillanceStatus((int)((ME >>> 48) & 0b11));
-        setNicSubB((int)((ME >>> 47) & 1));
+        setNicSubB((int)((ME >>> 48) & 1));
         setAltitudeType((int)(ME >>> 51));
-        setEncodedAltitude((int)((ME >>> 35) & 0xFFF));
+        setEncodedAltitude((int)((ME >>> 36) & 0xFFF));
     }
 
     public AirbornePosition getModeSMessage() {
@@ -28,6 +28,7 @@ public class AirbornePositionParser extends PositionParser {
         adsbMessage.setTransponderCapability(getTransponderCapability());
         adsbMessage.setIcaoAddress(getIcaoAddress());
         adsbMessage.setCallsign(getCallsign());
+        adsbMessage.setSurveillanceStatus(getSurveillanceStatus());
         adsbMessage.setNicSubB(getNicSubB());
         adsbMessage.setAltitudeType(getAltitudeType());
         adsbMessage.setEncodedAltitude(getEncodedAltitude());
@@ -82,22 +83,25 @@ public class AirbornePositionParser extends PositionParser {
     }
 
     public void setEncodedAltitude(int rawAltitude) {
-        if (this.altitudeType == "Barometric altitude") {
-            boolean Q = ((rawAltitude >> 7) & 1) == 1;
-            if(Q){
-                int alt = ((rawAltitude & 0x7F0) >> 1) | (rawAltitude & 0x0F);
-                this.encodedAltitude = 25 * alt - 1000;
-            }
-            else{
-                int gray = rawAltitude & 0x7FF; // Remove Q-bit (keep 11 bits)
+        if ("Barometric altitude".equals(this.altitudeType)) {
+            boolean Q = ((rawAltitude >> 4) & 1) == 1;
+            if (Q) {
+                int high = rawAltitude >> 5;
+                int low  = rawAltitude & 0xF;
+                int altBits = (high << 4) | low;
+
+                this.encodedAltitude = 25 * altBits - 1000;
+            } else {
+                int gray = rawAltitude & 0x7FF; // 11 bits
                 int binary = gray;
                 for (int mask = gray >> 1; mask != 0; mask >>= 1) {
                     binary ^= mask;
                 }
-                this.encodedAltitude = binary;
+                this.encodedAltitude = binary; // (caller probably handles units)
             }
-        }else if(this.altitudeType == "GNSS altitude") {
+        } else if ("GNSS altitude".equals(this.altitudeType)) {
             this.encodedAltitude = rawAltitude;
         }
     }
+
 }

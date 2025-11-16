@@ -3,10 +3,10 @@ package decoder.AdsbParser;
 import modes.AdsbMessage;
 
 public class AdsbMessageParser {
-    public static final long[] bitMasks = new long[64];
+    public static final long[] bitMasks = new long[65];
     static {
-        for (int i = 0; i < 64; i++) {
-            bitMasks[i] = (1L << i) - 1;
+        for (int i = 0; i <= 64; i++) {
+            bitMasks[i] = (i == 64) ? ~0L : (1L << i) - 1;
         }
     }
     private AdsbMessage adsbMessage;
@@ -19,13 +19,15 @@ public class AdsbMessageParser {
     private String callsign;
 
     public AdsbMessageParser(long timeStamp, long  highBits, long lowBits) {
-        int rawIcao24 = (int)((highBits >>> 40) & 0xFFFFFF);
+        int rawIcao24 = (int)((highBits >>> 32) & 0xFFFFFF);
         setIcaoAddress(String.format("%06X", rawIcao24));
 
-        long ME = ((highBits & bitMasks[32]) << 24) | ((lowBits >>> 40) & bitMasks[24]);
+        long ME = ((highBits & bitMasks[32]) << 24) | ((lowBits >>> 24) & bitMasks[24]);
         setTypeCode((int)(ME >>> 51));
         setDownlinkFormat((int)((highBits >>> 59) & 0x1F));
         setTimeStamp(timeStamp);
+        setTransponderCapability((int)((highBits >>> 56) & 0x07));
+
     }
 
     public AdsbMessage getModeSMessage(){
@@ -85,4 +87,5 @@ public class AdsbMessageParser {
     public void setCallsign(String callsign) {
         this.callsign = callsign;
     }
+
 }

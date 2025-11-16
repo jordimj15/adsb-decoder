@@ -11,12 +11,12 @@ public class AirborneVelocityParser extends AdsbMessageParser {
     private int ifrCapabilityFLag;
     private int NACv;
     private String typeVerticalRate;
-    private double verticalRate;
-    private double altitudeDifference;
+    private int verticalRate;
+    private int altitudeDifference;
 
     public AirborneVelocityParser(long timeStamp, long highBits, long lowBits){
         super(timeStamp, highBits, lowBits);
-        long ME = ((highBits & bitMasks[32]) << 24) | ((lowBits >>> 40) & bitMasks[24]);
+        long ME = ((highBits & bitMasks[32]) << 24) | ((lowBits >>> 24) & bitMasks[24]);
         setSubType((int)((ME >> 48) & 0x07));
         setIntentChangeFlag((int)((ME >> 47) & 0x01));
         setIfrCapabilityFLag((int)((ME >> 46) & 0x01));
@@ -46,16 +46,16 @@ public class AirborneVelocityParser extends AdsbMessageParser {
 
     public void setSubType(int value) {
         switch(value) {
-            case 0:
+            case 1:
                 this.subType = "Subsonic ground speed";
                 break;
-            case 1:
+            case 2:
                 this.subType = "Supersonic ground speed";
                 break;
-            case 2:
+            case 3:
                 this.subType = "Subsonic air speed";
                 break;
-            case 3:
+            case 4:
                 this.subType = "Supersonic air speed";
                 break;
         }
@@ -140,19 +140,19 @@ public class AirborneVelocityParser extends AdsbMessageParser {
         this.typeVerticalRate = typeVerticalRate;
     }
 
-    public double getVerticalRate() {
+    public int getVerticalRate() {
         return verticalRate;
     }
 
-    public void setVerticalRate(double verticalRate) {
+    public void setVerticalRate(int verticalRate) {
         this.verticalRate = verticalRate;
     }
 
-    public double getAltitudeDifference() {
+    public int getAltitudeDifference() {
         return altitudeDifference;
     }
 
-    public void setAltitudeDifference(double altitudeDifference) {
+    public void setAltitudeDifference(int altitudeDifference) {
         this.altitudeDifference = altitudeDifference;
     }
 }

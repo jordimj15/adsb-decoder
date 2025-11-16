@@ -12,7 +12,7 @@ public class GroundSpeedAirborneVelocityParser extends AirborneVelocityParser {
 
     public GroundSpeedAirborneVelocityParser(long timeStamp, long highBits, long lowBits){
         super(timeStamp, highBits, lowBits);
-        long ME = ((highBits & bitMasks[32]) << 24) | ((lowBits >>> 40) & bitMasks[24]);
+        long ME = ((highBits & bitMasks[32]) << 24) | ((lowBits >>> 24) & bitMasks[24]);
 
         int subType = (int)((ME >> 16) & 0x7);
         setVelocityEastWest((int)((ME >> (56 - 14)) & 0x01), (int)((ME >> (56 - 24)) & 0x3FF), subType);

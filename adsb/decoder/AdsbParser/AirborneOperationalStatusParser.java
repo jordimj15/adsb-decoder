@@ -17,18 +17,19 @@ public class AirborneOperationalStatusParser extends OperationalStatusParser {
 
     public AirborneOperationalStatusParser(long timeStamp, long  highBits, long lowBits) {
         super(timeStamp, highBits, lowBits);
-        long ME = ((highBits & bitMasks[32]) << 24) | ((lowBits >>> 40) & bitMasks[24]);
-        if(getAdsbVersion() == 2){
-            setTCASOperational((int) ((ME >>> (56 - 14)) & 0b1));
-            setARV((int) ((ME >> (56 - 15)) & 0b1));
-            setTS((int) ((ME >> (56 - 18)) & 0b111));
-            setTC((int) ((ME >>> (56 - 18)) & 0b111));
-            setUatIn((int) ((ME >>> (56 - 19)) & 0b1));
+        long ME = ((highBits & bitMasks[32]) << 24) | ((lowBits >>> 24) & bitMasks[24]);
+        if (getAdsbVersion() == 2) {
+            setTCASOperational((int) ((ME >>> (55 - 10)) & 0b1)); // bit 10
+            setARV((int) ((ME >>> (55 - 14)) & 0b1));             // bit 14
+            setTS((int) ((ME >>> (55 - 15)) & 0b1));              // bit 15
+            setTC((int) ((ME >>> (55 - 17)) & 0b11));             // bits 16–17
+            setUatIn((int) ((ME >>> (55 - 18)) & 0b1));           // bit 18
         }
-        setGVA((int) ((ME >>> (56 - 50)) & 0b11));
-        setNICbaro((int) ((ME >>> (56 - 53)) & 0b1));
+
+        setGVA((int) ((ME >>> (55 - 49)) & 0b11));                // bits 48–49
+        setNICbaro((int) ((ME >>> (55 - 52)) & 0b1));
     }
-    public AirborneOperationalStatus getAdsbMessage() {
+    public AirborneOperationalStatus getModeSMessage() {
         this.adsbMessage = new AirborneOperationalStatus();
         adsbMessage.setTimeStamp(getTimeStamp());
         adsbMessage.setDownlinkFormat(getDownlinkFormat());
@@ -117,9 +118,9 @@ public class AirborneOperationalStatusParser extends OperationalStatusParser {
 
     public void setNICbaro(int value) {
         switch(value){
-            case 0: this.TS = false;
+            case 0: this.NICbaro = false;
                 break;
-            case 1: this.TS = true;
+            case 1: this.NICbaro = true;
                 break;
             default:
                 break;

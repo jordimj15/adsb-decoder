@@ -3,7 +3,7 @@ package modes.computed;
 import modes.raw.SurfacePosition;
 
 public class ComputedSurfacePosition extends ComputedPosition {
-    private Double movement;
+    private double movement;
     private int groundTrackStatus;
     private double groundTrack;
 
@@ -18,11 +18,11 @@ public class ComputedSurfacePosition extends ComputedPosition {
         setIcaoAddress(surfacePosition.getIcaoAddress());
         setCallsign(surfacePosition.getCallsign());
     }
-    public Double getMovement() {
+    public double getMovement() {
         return movement;
     }
 
-    public void setMovement(Double movement) {
+    public void setMovement(double movement) {
         this.movement = movement;
     }
 

@@ -7,6 +7,7 @@ public class AdsbMessage {
     private int transponderCapability;
     private String icaoAddress;
     private String callsign;
+    private String aircraftCategory;
 
     public long getTimeStamp() {
         return timeStamp;
@@ -53,5 +54,13 @@ public class AdsbMessage {
 
     public void setCallsign(String callsign) {
         this.callsign = callsign;
+    }
+
+    public String getAircraftCategory() {
+        return aircraftCategory;
+    }
+
+    public void setAircraftCategory(String aircraftCategory) {
+        this.aircraftCategory = aircraftCategory;
     }
 }

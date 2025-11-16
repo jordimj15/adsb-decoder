@@ -8,8 +8,8 @@ public class AirborneVelocity extends AdsbMessage {
     private int ifrCapabilityFLag;
     private int NACv;
     private String typeVerticalRate;
-    private Double verticalRate;
-    private Double altitudeDifference;
+    private int verticalRate;
+    private int altitudeDifference;
 
     public String getSubType() {
         return subType;
@@ -52,19 +52,19 @@ public class AirborneVelocity extends AdsbMessage {
         this.intentChangeFlag = intentChangeFlag;
     }
 
-    public Double getVerticalRate() {
+    public int getVerticalRate() {
         return verticalRate;
     }
 
-    public void setVerticalRate(Double verticalRate) {
+    public void setVerticalRate(int verticalRate) {
         this.verticalRate = verticalRate;
     }
 
-    public Double getAltitudeDifference() {
+    public int getAltitudeDifference() {
         return altitudeDifference;
     }
 
-    public void setAltitudeDifference(Double altitudeDifference) {
+    public void setAltitudeDifference(int altitudeDifference) {
         this.altitudeDifference = altitudeDifference;
     }
 }

@@ -15,7 +15,7 @@ public class OperationalStatusParser extends AdsbMessageParser{
     public OperationalStatusParser(long timeStamp, long  highBits, long lowBits){
         super(timeStamp, highBits, lowBits);
 
-        long ME = ((highBits & bitMasks[32]) << 24) | ((lowBits >>> 40) & bitMasks[24]);
+        long ME = ((highBits & bitMasks[32]) << 24) | ((lowBits >>> 24) & bitMasks[24]);
         setAdsbVersion((int)((ME >> (56 - 43)) & 0x07));
         setNicsupA((int)((ME >> (56 - 44)) & 0x01));
         setNacp((int)((ME >> (56 - 48)) & 0x0F));

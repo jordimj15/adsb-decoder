@@ -12,11 +12,11 @@ public class PositionParser extends AdsbMessageParser{
     public PositionParser(long timeStamp, long highBits, long lowBits){
         super(timeStamp, highBits, lowBits);
 
-        long ME = ((highBits & bitMasks[32]) << 24) | ((lowBits >>> 40) & bitMasks[24]);
+        long ME = ((highBits & bitMasks[32]) << 24) | ((lowBits >>> 24) & bitMasks[24]);
 
-        setEncodedLatitude((int)(ME >> (56 - 39 - 1)) & 0x1FFFF);
-        setEncodedLongitude((int)(ME >> (56 - 56 - 1)) & 0x1FFFF);
-        setCprFormat((int)((ME >> (56 - 21)) & 1));
+        setEncodedLatitude((int)((ME >>> 17) & 0x1FFFF));
+        setEncodedLongitude((int)((ME >>> 0) & 0x1FFFF));
+        setCprFormat((int)((ME >> 34) & 1));
     }
 
     public Position getModeSMessage(){
@@ -53,7 +53,7 @@ public class PositionParser extends AdsbMessageParser{
     }
 
     public void setEncodedLatitude(int rawLatitude) {
-        this.encodedLatitude = rawLatitude / Math.pow(2.0, 17);
+        this.encodedLatitude = rawLatitude / Math.pow(2, 17);
     }
 
     public double getEncodedLongitude() {
@@ -61,7 +61,7 @@ public class PositionParser extends AdsbMessageParser{
     }
 
     public void setEncodedLongitude(int rawLongitude) {
-        this.encodedLongitude = rawLongitude / Math.pow(2.0, 17);
+        this.encodedLongitude = rawLongitude / Math.pow(2, 17);
     }
 
 }

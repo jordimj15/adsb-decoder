@@ -1,5 +1,6 @@
 package decoder.AdsbParser;
 
+import modes.raw.AirborneVelocity;
 import modes.raw.AircraftIdentification;
 
 public class AircraftIdentificationParser extends AdsbMessageParser {
@@ -12,24 +13,24 @@ public class AircraftIdentificationParser extends AdsbMessageParser {
 
     public AircraftIdentificationParser(long timeStamp, long highBits, long lowBits){
         super(timeStamp, highBits, lowBits);
-        long ME = ((highBits & bitMasks[32]) << 24) | ((lowBits >>> 40) & bitMasks[24]);
-        int CA = (int)((ME >>> 56) & 0x07);
-        setWakeVortexCapability(CA);
+        long ME = ((highBits & bitMasks[32]) << 24) | ((lowBits >>> 24) & bitMasks[24]);
+        int CA = (int)((ME >>> (55 - 7)) & 0x7);
         int TC = (int)(ME >>> 51);
         setAircraftCategory(TC, CA);
+        String callsign = computeCallsign(ME);
+        setCallsign(callsign);
     }
 
-    public AircraftIdentification getModeSMessage(long timeStamp, long ME){
-        adsbMessage = new AircraftIdentification();
+    public AircraftIdentification getModeSMessage(){
+        this.adsbMessage = new AircraftIdentification();
         adsbMessage.setTimeStamp(getTimeStamp());
         adsbMessage.setDownlinkFormat(getDownlinkFormat());
         adsbMessage.setTypeCode(getTypeCode());
         adsbMessage.setTransponderCapability(getTransponderCapability());
         adsbMessage.setIcaoAddress(getIcaoAddress());
         adsbMessage.setCallsign(getCallsign());
-        adsbMessage.setWakeVortexCapability(getWakeVortexCapability());
         adsbMessage.setAircraftCategory(getAircraftCategory());
-
+        adsbMessage.setWakeVortexCapability(getWakeVortexCapability());
         return adsbMessage;
     }
 
@@ -92,16 +93,26 @@ public class AircraftIdentificationParser extends AdsbMessageParser {
         }
     }
 
-    public String setCallsign(long ME){
+    public String computeCallsign(long ME) {
         final String charMapping = "#ABCDEFGHIJKLMNOPQRSTUVWXYZ#####_###############0123456789######";
         char[] callsign = new char[8];
+
+        // Start at bit 47 (C1) and go downward every 6 bits
         for (int i = 0; i < 8; i++) {
-            int bitPos = 56 - ((i + 1) * 6);
-            int sixBits = (int)((ME >>> bitPos) & 0x3F);
+            int bitPos = 47 - (i * 6);
+            int sixBits = (int)((ME >>> (bitPos - 5)) & 0x3F);
             callsign[i] = charMapping.charAt(sixBits);
         }
-        return new String(callsign).replace("#","").replace("_","");
+
+        return new String(callsign)
+                .replace("#", "")
+                .replace("_", "");
     }
+
+
+
+
+
 
     public String getAircraftCategory() {
         return aircraftCategory;

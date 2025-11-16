@@ -18,18 +18,18 @@ public class SurfaceOperationalStatusParser extends OperationalStatusParser {
 
     public SurfaceOperationalStatusParser(long timeStamp, long  highBits, long lowBits) {
         super(timeStamp, highBits, lowBits);
-        long ME = ((highBits & bitMasks[32]) << 24) | ((lowBits >>> 40) & bitMasks[24]);
+        long ME = ((highBits & bitMasks[32]) << 24) | ((lowBits >>> 24) & bitMasks[24]);
         if(getAdsbVersion() == 2){
-            setB2Low((int) (ME >> (56 - 14)) & 0b1);
-            setUatIn((int) (ME >> (56 - 15)) & 0b1);
-            setNACv((int) (ME >> (56 - 18)) & 0b111);
-            setNICsupC((int) (ME >> (56 - 19)) & 0b1);
+            setB2Low((int)((ME >>> (55 - 14)) & 0b1));
+            setUatIn((int)((ME >>> (55 - 15)) & 0b1));
+            setNACv((int)((ME >>> (55 - 18)) & 0b111));
+            setNICsupC((int)((ME >>> (55 - 19)) & 0b1));
         }
-        setLength((int)(ME >> (56 - 22)) & 0b111, (int) ((ME >> (56 - 23)) & 0b1));
-        setWidth((int)(ME >> (56 - 23)) & 0b1111);
-        setTrkHdg((int)(ME >> (56 - 52)) & 0b1);
-        if( ((int)(ME >> (56 - 26)) & 0b11) == 0){
-            setLateralGpsAntennaOffset((int)(ME >> (56 - 32)) & 0b1, (int) (ME >> (56 - 34)) & 0b11);
+        setLength((int)((ME >>> (55 - 22)) & 0b111), (int)((ME >>> (55 - 23)) & 0b1));
+        setWidth((int)((ME >>> (55 - 23)) & 0b1111));
+        setTrkHdg((int)((ME >>> (55 - 52)) & 0b1));
+        if (((ME >>> (55 - 24)) & 0b11)==0){
+            setLateralGpsAntennaOffset((int)((ME >>> (55 - 32)) & 0b1), (int)((ME >>> (55 - 34)) & 0b11));
             setLongitudinalGpsAntennaOffset((int) (ME >> (56 - 40)) & 0b111111);
         }
     }

@@ -5,22 +5,21 @@ import modes.raw.SurfacePosition;
 public class SurfacePositionParser extends PositionParser {
     private SurfacePosition adsbMessage;
 
-    private Double movement;
+    private double movement;
     private String groundTrackStatus;
     private double groundTrack;
 
     public SurfacePositionParser(long timeStamp, long highBits, long lowBits) {
         super(timeStamp, highBits, lowBits);
-        long ME = ((highBits & bitMasks[32]) << 24) | ((lowBits >>> 40) & bitMasks[24]);
+        long ME = ((highBits & bitMasks[32]) << 24) | ((lowBits >>> 24) & bitMasks[24]);
 
-        int typeCode = (int)((ME >> (56 - 5)) & 0x1F);
         setMovement((int)((ME >> (56 - 12)) & 0x7F));
         setGroundTrackStatus((int)((ME >> (56 - 13)) & 0x1));
         setGroundTrack((int)((ME >> (56 - 20)) & 0x7F));
     }
 
     public SurfacePosition getModeSMessage(){
-        this.adsbMessage = new SurfacePosition();
+        adsbMessage = new SurfacePosition();
         adsbMessage.setTimeStamp(getTimeStamp());
         adsbMessage.setDownlinkFormat(getDownlinkFormat());
         adsbMessage.setTypeCode(getTypeCode());
@@ -51,21 +50,20 @@ public class SurfacePositionParser extends PositionParser {
         if (value == 1)
             this.movement = 0.0;
         else if (value >= 2 && value <= 8)
-            this.movement = 0.125+(movement-2)*0.125;
+            this.movement = 0.125+(value-2)*0.145833;
         else if (value >= 9 && value <= 12)
-            this.movement = 1+(movement-9)*0.25;
+            this.movement = 1+(value-9)*0.25;
         else if (value >= 13 && value <= 38)
-            this.movement = 2+(movement-13)*0.5;
+            this.movement = 2+(value-13)*0.5;
         else if (value >= 39 && value <= 93)
-            this.movement = 15+(movement-39);
+            this.movement = 15 + (value - 39);
         else if (value >= 94 && value <= 108)
-            this.movement = 70+(movement-94)*2;
+            this.movement = 70+(value-94)*2;
         else if (value >= 109 && value <= 123)
-            this.movement = 100+(movement-109)*5;
+            this.movement = 100+(value-109)*5;
         else if (value == 124)
             this.movement = 175.0;
-        else
-            this.movement = null;
+
     }
     public void setGroundTrackStatus(int value){
         switch (value){
