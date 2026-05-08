@@ -29,3 +29,5 @@ bin/
 .DS_Store
 
 src/test_script.java
+src/adsb_256295006.txt
+src/messages.txt
