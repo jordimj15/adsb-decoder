@@ -14,9 +14,9 @@ public class AirSpeedAirborneVelocityParser extends AirborneVelocityParser {
         super(timeStamp, highBits, lowBits);
         long ME = ((highBits & bitMasks[32]) << 24) | ((lowBits >>> 24) & bitMasks[24]);
 
-        setHeading((int)((ME >> 21) & 0x01), (int)((ME >> 11) & 0x3FF));
-        setAirspeedType((int)((ME >> 10) & 0x01));
-        setAirspeed((int)(ME & 0x3FF), (int)((ME >> 16) & 0x7));
+        setHeading((int)((ME >>> 42) & 0x01), (int)((ME >>> 32) & 0x3FF));
+        setAirspeedType((int)((ME >>> 31) & 0x01));
+        setAirspeed((int)((ME >>> 21) & 0x3FF), (int)((ME >>> 48) & 0x7));
     }
 
     public AirSpeedAirborneVelocity getModeSMessage(){

@@ -1,10 +1,23 @@
 package modes;
 
+/**
+ * Base class for every decoded ADS-B message, holding the fields shared by
+ * all message types.
+ *
+ * <p>The header fields (timestamp, Downlink Format, Type Code, transponder
+ * capability and ICAO address) are filled in by the parser when the message
+ * is decoded. The callsign and aircraft category are only transmitted in
+ * Aircraft Identification messages, so for every other message type they are
+ * attached later by the {@code Preprocessor}, taken from the last
+ * identification received for the same ICAO address.
+ */
 public class AdsbMessage {
+    /** Reception time of the message, as a Unix epoch in microseconds. */
     private long timeStamp;
     private int downlinkFormat;
     private int typeCode;
     private int transponderCapability;
+    /** 24-bit ICAO address of the aircraft, as six uppercase hexadecimal digits. */
     private String icaoAddress;
     private String callsign;
     private String aircraftCategory;

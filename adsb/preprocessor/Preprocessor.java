@@ -10,25 +10,85 @@ import modes.raw.Position;
 import modes.raw.SurfacePosition;
 import java.util.*;
 
+/**
+ * Second stage of the decoding pipeline: completes the messages coming out
+ * of the {@code Decoder} by resolving positions and attaching
+ * identification data.
+ *
+ * <p>Messages must be fed one at a time, in reception order, through
+ * {@link #preprocess(AdsbMessage)}. The preprocessor keeps state for every
+ * aircraft seen recently, identified by its ICAO address, and does three
+ * things:
+ * <ol>
+ *   <li><b>Position resolution:</b> raw position messages only carry CPR
+ *       encoded coordinates. Each one is stored in an even or odd queue for
+ *       its aircraft, and when an even/odd pair is found close enough in
+ *       time ({@link #MAX_AIR_CPR_DIFF_TIME} for airborne positions,
+ *       {@link #MAX_SURF_CPR_DIFF_TIME} for surface positions), global CPR
+ *       decoding produces a {@link ComputedAirbornePosition} or a
+ *       {@link ComputedSurfacePosition}. Raw positions are never returned
+ *       themselves.</li>
+ *   <li><b>Identification:</b> callsign and aircraft category are only
+ *       transmitted in Aircraft Identification messages. They are kept per
+ *       aircraft in an {@link IdMessage} and attached to every other message
+ *       from the same aircraft. Messages from an aircraft with no known
+ *       identification yet are held back, and released once one arrives.
+ *       Aircraft Identification messages themselves are consumed and not
+ *       returned.</li>
+ *   <li><b>Cleanup:</b> every {@link #CLEAN_QUEUES_RATE}, stale CPR
+ *       messages, identifications and held back messages are discarded. If a
+ *       message arrives with an earlier timestamp than the last cleanup, for
+ *       example because a new input file has started, all state is cleared.</li>
+ * </ol>
+ *
+ * <p>All timestamps and time constants are in microseconds.
+ */
 public class Preprocessor {
+    /** Minimum time between two cleanups of the stored state (10 s). */
     private static final long CLEAN_QUEUES_RATE = 10000000L;
+    /** Maximum time between an even and an odd airborne position message for them to be paired (10 s). */
     private static final long MAX_AIR_CPR_DIFF_TIME = 10000000L;
+    /** Maximum time between an even and an odd surface position message for them to be paired (50 s). */
     private static final long MAX_SURF_CPR_DIFF_TIME = 50000000L;
+    /** Maximum time a message is held back waiting for an identification before being discarded (10 min). */
     private static final long MAX_OUT_QUEUE_TIME = 600000000L;
+    /** Maximum time an identification is kept without a new Aircraft Identification message (10 min). */
     private static final long MAX_CALLSIGN_TIME = 600000000L;
+    /** Timestamp of the last cleanup of the stored state. */
     private long cleanedTimeStamp = 0;
 
+    /** Identification of each aircraft, by ICAO address. */
     private Map<String, IdMessage> callSignMap = new HashMap<>();
+    /** Messages held back until an identification is received for their aircraft. */
     private List<AdsbMessage> outgoingMessageList = new ArrayList<>();
+    /** Recent even airborne position messages of each aircraft, by ICAO address, newest first. */
     private Map<String, Deque<AirbornePosition>> airborneMapEven = new HashMap<>();
+    /** Recent odd airborne position messages of each aircraft, by ICAO address, newest first. */
     private Map<String, Deque<AirbornePosition>> airborneMapOdd  = new HashMap<>();
+    /** Recent even surface position messages of each aircraft, by ICAO address, newest first. */
     private Map<String, Deque<SurfacePosition>> surfaceMapEven = new HashMap<>();
+    /** Recent odd surface position messages of each aircraft, by ICAO address, newest first. */
     private Map<String, Deque<SurfacePosition>> surfaceMapOdd  = new HashMap<>();
 
+    /**
+     * Processes one decoded message and returns the messages that are ready
+     * to be used.
+     *
+     * <p>The returned list is empty when nothing is ready yet (a raw position
+     * with no pair, a message waiting for an identification, or an Aircraft
+     * Identification message). It can also hold several messages, when an
+     * identification releases the messages held back for that aircraft.
+     *
+     * @param adsbMessage the message decoded by the {@code Decoder}
+     * @return the messages ready to be used, with their callsign and aircraft category attached
+     * @throws Exception if CPR decoding is run on two messages that are not an even/odd pair
+     */
     public List<AdsbMessage> preprocess(AdsbMessage adsbMessage) throws Exception {
         long currentTimeStamp = adsbMessage.getTimeStamp();
         List<AdsbMessage> processed = new ArrayList<>();
 
+        // A timestamp earlier than the last cleanup means a new input has
+        // started, so the state kept from the previous one is discarded.
         if ((currentTimeStamp - cleanedTimeStamp) < 0) {
             callSignMap.clear();
             outgoingMessageList.clear();
@@ -39,6 +99,8 @@ public class Preprocessor {
             cleanedTimeStamp = currentTimeStamp;
         }
 
+        // Periodically discard stale state so that the queues and maps do
+        // not grow without bound.
         if ((currentTimeStamp - cleanedTimeStamp) > CLEAN_QUEUES_RATE) {
             cleanQueuesOptimized(currentTimeStamp);
             cleanedTimeStamp = currentTimeStamp;
@@ -57,6 +119,17 @@ public class Preprocessor {
         return processed;
     }
 
+    /**
+     * Stores or updates the identification of an aircraft, and releases the
+     * messages from it that were waiting for one.
+     *
+     * <p>For an aircraft that is already known, only the callsign and the
+     * last identification timestamp are updated. The aircraft category stays
+     * the one from its first identification.
+     *
+     * @param adsbMessage the Aircraft Identification message
+     * @param processed the list of messages ready to be returned, where the released messages are added
+     */
     private void processIdentification(AircraftIdentification adsbMessage, List<AdsbMessage> processed) {
         IdMessage id = callSignMap.get(adsbMessage.getIcaoAddress());
 
@@ -72,6 +145,15 @@ public class Preprocessor {
 
     }
 
+    /**
+     * Attaches the identification to every held back message from the given
+     * aircraft, and moves those messages from the held back list to the
+     * processed list.
+     *
+     * @param icao24 the ICAO address of the aircraft
+     * @param id the identification of the aircraft
+     * @param processed the list of messages ready to be returned
+     */
     private void processPendingMessages(String icao24, IdMessage id, List<AdsbMessage> processed) {
         outgoingMessageList.removeIf(adsbMessage -> {
             if (adsbMessage.getIcaoAddress().equals(icao24)) {
@@ -88,6 +170,21 @@ public class Preprocessor {
 
     }
 
+    /**
+     * Stores a raw airborne position in its even or odd queue, and tries to
+     * pair it with the most recent message of the opposite CPR format from
+     * the same aircraft.
+     *
+     * <p>If that message is within {@link #MAX_AIR_CPR_DIFF_TIME}, the pair is
+     * decoded with {@link #runCprDecoder} and the resulting position is
+     * handled by {@link #processOtherMessage}, like any other message.
+     * Otherwise nothing is produced, and the message stays in its queue
+     * waiting for a message of the opposite format.
+     *
+     * @param adsbMessage the raw airborne position message
+     * @param processed the list of messages ready to be returned
+     * @throws Exception if CPR decoding is run on two messages that are not an even/odd pair
+     */
     private void processAirbornePosition(AirbornePosition adsbMessage, List<AdsbMessage> processed) throws Exception {
         boolean isEven = adsbMessage.getCprFormat().equals("Even");
         String icao24 = adsbMessage.getIcaoAddress();
@@ -102,6 +199,9 @@ public class Preprocessor {
 
         sourceQueue.addFirst(adsbMessage);
 
+        // Queues hold the newest message first, so only the most recent
+        // message of the opposite format is checked. If it is too old, every
+        // older one is too.
         if (targetQueue != null && !targetQueue.isEmpty()) {
             for (AirbornePosition opposite : targetQueue) {
                 long diff = Math.abs(adsbMessage.getTimeStamp() - opposite.getTimeStamp());
@@ -112,12 +212,25 @@ public class Preprocessor {
                     }
                     break;
                 } else if (diff > MAX_AIR_CPR_DIFF_TIME) {
-                    break; // mensajes demasiado viejos, no tiene sentido seguir
+                    break;
                 }
             }
         }
     }
 
+    /**
+     * Stores a raw surface position in its even or odd queue, and tries to
+     * pair it with the most recent message of the opposite CPR format from
+     * the same aircraft.
+     *
+     * <p>Works like {@link #processAirbornePosition}, using
+     * {@link #MAX_SURF_CPR_DIFF_TIME} as the pairing window. Two messages
+     * with the same timestamp are not paired.
+     *
+     * @param adsbMessage the raw surface position message
+     * @param processed the list of messages ready to be returned
+     * @throws Exception if CPR decoding is run on two messages that are not an even/odd pair
+     */
     private void processSurfacePosition(SurfacePosition adsbMessage, List<AdsbMessage> processed) throws Exception {
         boolean isEven = adsbMessage.getCprFormat().equals("Even");
         String icao24 = adsbMessage.getIcaoAddress();
@@ -132,6 +245,8 @@ public class Preprocessor {
 
         sourceQueue.addFirst(adsbMessage);
 
+        // Same as for airborne positions, only the most recent message of
+        // the opposite format is checked.
         if (targetQueue != null && !targetQueue.isEmpty()) {
             for (SurfacePosition opposite : targetQueue) {
                 long diff = Math.abs(adsbMessage.getTimeStamp() - opposite.getTimeStamp());
@@ -149,6 +264,14 @@ public class Preprocessor {
         }
     }
 
+    /**
+     * Attaches the identification of its aircraft to a message and adds it
+     * to the processed list, or holds it back if no identification is known
+     * yet for that aircraft.
+     *
+     * @param message the message to complete
+     * @param preprocessed the list of messages ready to be returned
+     */
     private void processOtherMessage(AdsbMessage message, List<AdsbMessage> preprocessed) {
         String icao24 = message.getIcaoAddress();
         IdMessage id = callSignMap.get(icao24);
@@ -162,6 +285,13 @@ public class Preprocessor {
         }
     }
 
+    /**
+     * Attaches the known callsign to a message if it is newer than the last
+     * identification of its aircraft, and records its timestamp as the last
+     * position message of that aircraft. Currently not used.
+     *
+     * @param message the message to complete
+     */
     private void checkCallsign(AdsbMessage message) {
         IdMessage id = callSignMap.get(message.getIcaoAddress());
         if (id == null) return;
@@ -172,6 +302,33 @@ public class Preprocessor {
         }
     }
 
+    /**
+     * Resolves the position of an aircraft from an even and an odd CPR
+     * encoded position message, using global CPR decoding as described in
+     * DO-260B.
+     *
+     * <p>The two messages can be given in any order. The resulting position
+     * takes all its other fields from the newer message, and its latitude is
+     * the one decoded from the newer message too. Surface positions use a
+     * quarter of the airborne zone sizes (90° instead of 360°).
+     *
+     * <p>No position is returned if any of the encoded coordinates is zero,
+     * or if the even and odd latitudes fall in different longitude zones
+     * (see {@link #cprNL}), since the pair cannot be decoded reliably then.
+     *
+     * <p>The decoded longitude is normalised to the range from -180° to 180°,
+     * and then moved into the range from -30° to 60° in steps of 90°. This is
+     * done for both airborne and surface positions. It picks the right
+     * solution among the four possible ones of a surface position for a
+     * receiver located within that range, but it also moves any airborne
+     * position outside it.
+     *
+     * @param firstMessage one of the two position messages
+     * @param secondMessage the other position message, of the opposite CPR format
+     * @return the resolved position, a {@link ComputedAirbornePosition} or a
+     * {@link ComputedSurfacePosition}, or {@code null} if the pair cannot be decoded
+     * @throws Exception if the two messages are not an even/odd pair
+     */
     private ComputedPosition runCprDecoder(Position firstMessage, Position secondMessage) throws Exception {
         Position evenMessage;
         Position oddMessage;
@@ -204,6 +361,7 @@ public class Preprocessor {
             throw new Exception("Invalid CPR format");
         }
 
+        // Latitude zone sizes for the even (60 zones) and odd (59 zones) formats.
         DLatE = (360.0 * correctionFactor) / 60.0;
         DLatO = (360.0 * correctionFactor) / 59.0;
 
@@ -214,6 +372,8 @@ public class Preprocessor {
 
         if(latCprE == 0.0 || lonCprE == 0.0 || latCprO == 0.0 || lonCprO == 0.0) return null;
 
+        // Latitude zone index, then the even and odd latitudes folded into
+        // the range from -90° to 90°.
         double j = Math.floor(59.0 * latCprE - 60.0 * latCprO + 0.5);
 
         double latE = DLatE * (module(j, 60) + latCprE);
@@ -224,6 +384,9 @@ public class Preprocessor {
         if(latO >= 270) latO -= 360; else if(latO >= 90) latO = 180 - latO;
         else if(latO <= -270) latO += 360; else if(latO <= -90) latO = -(180 + latO);
 
+        // Both latitudes must fall in the same longitude zone, otherwise the
+        // aircraft crossed a zone boundary between the two messages. The
+        // longitude is then decoded with the zone count of the newer message.
         if(cprNL(latE) == cprNL(latO)){
             if(newerMessage.getCprFormat().equals("Even")){
                 latitude = latE;
@@ -237,6 +400,8 @@ public class Preprocessor {
                 longitude = (360.0 * correctionFactor) / ni * (module(m, ni) + lonCprO);
             }
 
+            // Normalise to the range from -180° to 180°, then move into the
+            // range from -30° to 60° (see the method description).
             if(longitude > 180) longitude -= 360;
             while (longitude > 60) longitude -= 90;
             while (longitude < -30) longitude += 90;
@@ -250,16 +415,38 @@ public class Preprocessor {
         return newPosition;
     }
 
+    /**
+     * Modulo operation that always returns a value in the range from 0 to
+     * {@code b}, unlike the {@code %} operator, which keeps the sign of {@code a}.
+     *
+     * @param a the dividend
+     * @param b the divisor
+     * @return the non negative remainder of {@code a} divided by {@code b}
+     */
     private double module(double a, double b){
         return ((a % b) + b) % b;
     }
 
+    /**
+     * Returns the newer of two position messages. If both have the same
+     * timestamp, the second one is returned.
+     *
+     * @param first one of the position messages
+     * @param second the other position message
+     * @return the message with the latest timestamp
+     */
     private Position findNewerMessage(Position first, Position second) {
         return (first.getTimeStamp() > second.getTimeStamp()) ? first : second;
     }
 
+    /**
+     * Computes the number of longitude zones (NL) at a given latitude, using
+     * the precomputed transition latitudes of the DO-260B NL table.
+     *
+     * @param lat the latitude, in decimal degrees
+     * @return the number of longitude zones, from 1 to 59
+     */
     private double cprNL(double lat) throws Exception {
-        // La función completa que ya tenías
         double NL;
         lat = Math.abs(lat);
         if (lat < 10.4704713) NL = 59;
@@ -324,11 +511,29 @@ public class Preprocessor {
         return NL;
     }
 
+    /**
+     * Computes the number of longitude zones for a latitude and CPR format,
+     * which is NL for even messages and NL - 1 for odd messages, with a
+     * minimum of 1.
+     *
+     * @param lat the latitude, in decimal degrees
+     * @param isOdd {@code 0} for an even message, {@code 1} for an odd message
+     * @return the number of longitude zones for that format
+     */
     private double cprN(double lat, int isOdd) throws Exception {
         double N = cprNL(lat) - isOdd;
         return (N > 1) ? N : 1;
     }
 
+    /**
+     * Discards the stale state of every aircraft: CPR messages older than
+     * their pairing window, identifications not refreshed within
+     * {@link #MAX_CALLSIGN_TIME}, and held back messages older than
+     * {@link #MAX_OUT_QUEUE_TIME}. CPR queues left empty are removed from
+     * their map.
+     *
+     * @param currentTimeStamp the timestamp of the message being processed, used as the current time
+     */
     private void cleanQueuesOptimized(long currentTimeStamp) {
 
         Iterator<Map.Entry<String, Deque<AirbornePosition>>> itAE = airborneMapEven.entrySet().iterator();
